@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# Submit this script with: sbatch thefilename
+
+# #SBATCH -p free
+#SBATCH -t 120:00:00   # walltime
+#SBATCH -N 1   # number of nodes in this job
+#SBATCH -n 1   # total number of processor cores in this job
+#SBATCH -J "D0917opt"   # job name
+#SBATCH -o D0917opt.out # output file
+#SBATCH --mail-type=END
+#SBATCH --mail-type=FAIL
+
+# Set required modules
+# module unload intel/15.0.2
+# module load openmpi/1.10.6
+
+module purge
+#module load intel/16.0
+#module load gcc/6.3.0
+module load matlab/R2016a
+
+# This job's working directory
+echo Working directory is $SLURM_SUBMIT_DIR
+cd $SLURM_SUBMIT_DIR
+echo Running on host `hostname`
+echo Time is `date`
+echo Directory is `pwd`
+
+# Run Command
+matlab -r InflationOptD0917

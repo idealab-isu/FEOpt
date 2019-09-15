@@ -1,0 +1,66 @@
+#!/bin/bash
+
+# #SBATCH -p free 
+#SBATCH -t 120:00:00 # walltime
+#SBATCH -N 4 # number of nodes in this job
+#SBATCH -n 64 # total number of processor cores in this job
+#SBATCH -J "D1017eval"   # job name
+#SBATCH -o D1017eval.out # output file
+#SBATCH --mail-type=END
+#SBATCH --mail-type=FAIL
+
+# Set required modules
+module purge
+#module load intel/16.0
+#module load gcc/6.3.0
+module load parallel/20160422
+
+# Job working directory
+echo Working directory is $SLURM_SUBMIT_DIR
+cd $SLURM_SUBMIT_DIR
+echo Running on host `hostname`
+echo Time is `date`
+echo Directory is `pwd`
+
+# Run Command
+# #
+# Repeatedly call (n/8) "parallel" jobs until optimization is completed
+# #
+
+date
+
+rm -f stopFlag.txt
+
+stopFlag=0
+
+until [ "$stopFlag" -eq 1 ] # Loop until optimization is complete
+do
+  readyFlag=0
+  
+  until [ "$readyFlag" -eq 1 ] # Wait until matlab has prepared all configurations
+  do
+    if [ -f readyFlag.txt ] # If file exists
+    then
+      readyFlag=$(cat "readyFlag.txt")
+      echo "readyFlag: $readyFlag"
+    fi
+  done
+ 
+  rm -f "readyFlag.txt"
+   
+  numWorkers=$(cat "numWorkers.txt")
+  echo "numWorkers: $numWorkers"
+  
+  parallel -j 8 -k --sshloginfile $PBS_NODEFILE --workdir $PWD \
+  "module load intel gcc; ./runCase.script {1}" ::: `eval echo {1.."$numWorkers"}`
+  
+  sleep 30
+  
+  if [ -f stopFlag.txt ] # If file exists
+  then
+    stopFlag=$(cat "stopFlag.txt")
+    echo "stopFlag: $stopFlag"
+  fi
+  
+done
+

@@ -1,0 +1,4 @@
+rm slurm-*.out
+rm UnloadedNodalData*
+rm -rf Inflation_*
+rm -rf Deflation_*

@@ -1,0 +1,52 @@
+#!/bin/sh
+
+echo "worker$1"
+
+./prep.sh $1 # Clear folders and UnloadedNodes...
+
+counter=0
+
+maxInflates=5 # 5 or 10
+
+if [ -f "inputs$1.txt" ] # If config exists
+then
+  while [ "$counter" -le "$maxInflates" ] 
+  do
+    if [ "$counter" -gt 0 ] # Skip deflation before first inflation
+    then
+      echo "Deflation $1 $counter"
+      
+      timeout -k 15m 15m mpirun -np 8 CONTINUITY_DIR/Continuity/continuityparallel $1 \
+      HOMEDIR/D1024/Full_D1024.py
+    fi
+    
+    echo "Inflation $1 $counter"
+    
+    timeout -k 20m 20m mpirun -np 8 CONTINUITY_DIR/Continuity/continuityparallel $1 \
+    HOMEDIR/D1024/Full_D1024.py
+    
+    if [ -f "Verr$1.txt" ] # If file exists
+    then
+      Verr=$(cat "Verr$1.txt")
+      echo "Verr$1: $Verr"
+     
+      rm -f "Verr$1.txt"
+       
+      if [ "$Verr" -eq 1 ] # Check for convergence
+      then
+        echo "converged$1"
+        break
+      else
+        echo "$counter" > "state$1.txt"
+        ((counter++))
+      fi
+    else # Diverged/crashed
+      echo "diverged$1"
+      break
+    fi
+  done
+  
+  echo "-$counter" > "state$1.txt"
+else
+  echo "no inputs"
+fi
